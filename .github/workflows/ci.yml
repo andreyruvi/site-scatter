@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test on Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22', '24']
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+
+      # No install step: the project has no dependencies. The glob is expanded
+      # by the shell rather than passed to the test runner, whose own glob
+      # support postdates Node 20.
+      - name: Run tests
+        run: node --test test/*.test.js
+
+  integrity:
+    name: Repository integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: No runtime dependencies
+        run: |
+          if grep -qE '"(dependencies|devDependencies)"' package.json; then
+            echo "package.json declares dependencies; this project must have none."
+            exit 1
+          fi
+          echo "OK: no dependencies declared."
+
+      - name: Nothing is loaded from a third-party host
+        run: |
+          if grep -rInE 'https?://(cdn|unpkg|esm|fonts\.googleapis|ajax|jsdelivr)' \
+               index.html styles src; then
+            echo "The page must not load anything from another host."
+            exit 1
+          fi
+          echo "OK: no external resources referenced."
+
+      - name: The page makes no network calls
+        run: |
+          if grep -rnE '\b(fetch|XMLHttpRequest|WebSocket|sendBeacon|importScripts)\b' src; then
+            echo "This tool must not talk to the network."
+            exit 1
+          fi
+          echo "OK: no network calls."
+
+      # Comment lines are skipped: rng.js explains at the top why Math.random
+      # is not used, and the check should not trip over its own rationale.
+      - name: The engine is deterministic
+        run: |
+          if grep -rnE 'Math\.random\(' src/engine | grep -vE '^[^:]+:[0-9]+: *(\*|//)'; then
+            echo "The engine must be seeded, so a scheme rebuilds identically."
+            exit 1
+          fi
+          echo "OK: nothing in the engine calls Math.random."
+
+      - name: Every source file the page needs is present
+        run: |
+          missing=0
+          for file in $(grep -oE '(src|styles|assets)/[A-Za-z0-9._/-]+' index.html | sort -u); do
+            if [ ! -f "$file" ]; then
+              echo "index.html references a missing file: $file"
+              missing=1
+            fi
+          done
+          exit $missing
+
+      - name: No leftover debugging
+        run: |
+          if grep -rn 'console\.log\|debugger' src; then
+            echo "Remove debugging statements before merging."
+            exit 1
+          fi
+          echo "OK: no debugging statements."

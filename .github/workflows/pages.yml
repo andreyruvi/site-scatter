@@ -1,0 +1,72 @@
+name: Deploy to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a queued run supersedes an earlier queued one but
+# never cancels a deploy that is already under way.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Test before deploying
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: node --test test/*.test.js
+
+  deploy:
+    name: Deploy
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/configure-pages@v6
+
+      # There is no build: the repository root is the site. Only the files the
+      # page actually needs are published.
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp index.html _site/
+          cp -r src styles assets _site/
+          # Pages would otherwise treat the site as Jekyll input.
+          touch _site/.nojekyll
+          echo "Published files:"
+          find _site -type f | sort
+
+      - name: Check the published site is complete
+        run: |
+          missing=0
+          for file in $(grep -oE '(src|styles|assets)/[A-Za-z0-9._/-]+' _site/index.html | sort -u); do
+            if [ ! -f "_site/$file" ]; then
+              echo "Missing from the published site: $file"
+              missing=1
+            fi
+          done
+          test -f _site/index.html || { echo "No index.html"; missing=1; }
+          exit $missing
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v5
