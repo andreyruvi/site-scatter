@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Site Scatter">
+  <title>Site Scatter</title>
+  <rect width="64" height="64" rx="10" fill="#eef0e6"/>
+  <!-- The ground, as a sloping plane -->
+  <path d="M4 44 L32 32 L60 44 L32 58 Z" fill="#8b9a63" stroke="#5f6b43" stroke-width="1.2"/>
+  <!-- A building pad -->
+  <path d="M26 38 L38 38 L44 41 L32 46 L20 41 Z" fill="#c6c1b6" stroke="#8a857b" stroke-width="1"/>
+  <!-- Scattered planting -->
+  <g fill="#3f6b3d">
+    <circle cx="14" cy="41" r="4.2"/>
+    <circle cx="22" cy="33" r="3.2"/>
+    <circle cx="50" cy="41" r="4.6"/>
+    <circle cx="41" cy="31" r="3"/>
+  </g>
+  <g stroke="#6b5a48" stroke-width="1.6" stroke-linecap="round">
+    <path d="M14 45v4M22 36v3M50 46v4M41 34v3"/>
+  </g>
+  <!-- A conifer, for variety -->
+  <path d="M33 16l5 12h-10z" fill="#2f5238"/>
+  <path d="M33 22v8" stroke="#6b5a48" stroke-width="1.6" stroke-linecap="round"/>
+</svg>
