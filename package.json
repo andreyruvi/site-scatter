@@ -1,0 +1,22 @@
+{
+  "name": "site-scatter",
+  "version": "1.0.0",
+  "description": "Paint planting onto a site and get the model and the schedule out: trees, shrubs, groundcover and paving scattered under minimum-spacing, slope and keep-out rules, exported as OBJ plus a planting schedule. No dependencies, no build, nothing uploaded.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Duong L. (https://github.com/andreyruvi)",
+  "homepage": "https://andreyruvi.github.io/site-scatter/",
+  "repository": { "type": "git", "url": "git+https://github.com/andreyruvi/site-scatter.git" },
+  "bugs": { "url": "https://github.com/andreyruvi/site-scatter/issues" },
+  "keywords": [
+    "architecture", "landscape", "site-planning", "planting-plan", "planting-schedule",
+    "webgl", "webgl2", "3d", "terrain", "lumion", "obj-export", "bim"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "serve": "node tools/serve.js"
+  },
+  "engines": { "node": ">=20" },
+  "private": false,
+  "files": ["index.html", "src", "styles", "assets"]
+}

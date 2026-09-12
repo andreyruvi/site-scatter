@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Site Scatter — paint planting onto a site and get the schedule out</title>
+<meta name="description" content="Paint trees, shrubs, groundcover and paving onto a 3D site. Minimum spacing, planting slope limits and a keep-out around the building are enforced as you paint. Exports an OBJ site model and a planting schedule. Runs entirely in your browser.">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="styles/site-scatter.css">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+</head>
+<body data-state="clear">
+
+<a class="skip-link" href="#report">Skip to the schedule</a>
+
+<header class="masthead">
+  <div class="masthead__title">
+    <h1>Site Scatter</h1>
+    <p>Paint the planting. Take away the model and the schedule.</p>
+  </div>
+  <div class="masthead__actions">
+    <button type="button" class="button" data-action="example">Load an example</button>
+    <button type="button" class="button" data-action="frame">Frame the site</button>
+    <button type="button" class="button" data-action="clear-planting">Clear planting</button>
+  </div>
+</header>
+
+<p class="unsupported" data-unsupported hidden>
+  This tool needs WebGL 2, and this browser has not given it. Everything else on
+  the page still works, but there is nothing to paint on. Recent Chrome, Edge,
+  Firefox and Safari all support it; a very old machine, a remote desktop
+  session or hardware acceleration turned off are the usual reasons it is
+  missing.
+</p>
+
+<main class="layout">
+
+  <form class="panel controls" data-form aria-label="Site and planting controls">
+
+    <section class="block">
+      <h2 class="block__title">Paint</h2>
+
+      <div class="field">
+        <label for="species">Planting type</label>
+        <select id="species" name="species" data-species-select></select>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="brush">Brush radius <span class="unit">m</span></label>
+          <input type="range" id="brush" name="brush" min="1" max="30" step="0.5" value="7">
+          <output data-readout="brush">7 m</output>
+        </div>
+        <div class="field">
+          <label for="density">Density <span class="unit">%</span></label>
+          <input type="range" id="density" name="density" min="5" max="100" step="5" value="75">
+          <output data-readout="density">75%</output>
+        </div>
+      </div>
+
+      <div class="checks">
+        <div class="field field--check">
+          <input type="radio" id="modePaint" name="mode" value="paint" checked>
+          <label for="modePaint">Paint</label>
+        </div>
+        <div class="field field--check">
+          <input type="radio" id="modeErase" name="mode" value="erase">
+          <label for="modeErase">Erase</label>
+        </div>
+      </div>
+
+      <p class="hint">
+        Drag on the ground to paint. Drag with the right button, or hold
+        <kbd>Space</kbd>, to orbit; scroll to zoom; middle-drag to pan.
+        <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes a stroke.
+      </p>
+      <p class="pending" data-pending hidden></p>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title">This planting type</h2>
+      <p class="hint">
+        These are generic forms, not a plant database. Set the numbers your own
+        schedule specifies and rename it to the species you are using.
+      </p>
+      <div class="field">
+        <label for="renamed">Name on the schedule</label>
+        <input type="text" id="renamed" name="renamed" autocomplete="off" placeholder="leave blank for the generic name">
+      </div>
+      <div class="grid">
+        <div class="field">
+          <label for="minHeight">Height, low <span class="unit">m</span></label>
+          <input type="number" id="minHeight" name="minHeight" min="0.05" max="60" step="0.1">
+        </div>
+        <div class="field">
+          <label for="maxHeight">Height, high <span class="unit">m</span></label>
+          <input type="number" id="maxHeight" name="maxHeight" min="0.05" max="60" step="0.1">
+        </div>
+        <div class="field">
+          <label for="minSpread">Spread, low <span class="unit">m</span></label>
+          <input type="number" id="minSpread" name="minSpread" min="0.05" max="40" step="0.1">
+        </div>
+        <div class="field">
+          <label for="maxSpread">Spread, high <span class="unit">m</span></label>
+          <input type="number" id="maxSpread" name="maxSpread" min="0.05" max="40" step="0.1">
+        </div>
+        <div class="field">
+          <label for="spacing">Minimum spacing <span class="unit">m</span></label>
+          <input type="number" id="spacing" name="spacing" min="0.1" max="40" step="0.1">
+        </div>
+        <div class="field">
+          <label for="maxSlope">Steepest ground <span class="unit">°</span></label>
+          <input type="number" id="maxSlope" name="maxSlope" min="0" max="89" step="1">
+        </div>
+      </div>
+      <p><button type="button" class="button button--small" data-action="reset-type">Reset this type</button></p>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title">The site</h2>
+      <div class="grid">
+        <div class="field">
+          <label for="size">Size, square <span class="unit">m</span></label>
+          <input type="number" id="size" name="size" min="10" max="300" step="5" value="60">
+        </div>
+        <div class="field">
+          <label for="relief">Relief <span class="unit">m</span></label>
+          <input type="number" id="relief" name="relief" min="0" max="40" step="0.5" value="4">
+        </div>
+        <div class="field">
+          <label for="fall">Mean fall <span class="unit">%</span></label>
+          <input type="number" id="fall" name="fall" min="0" max="40" step="0.5" value="4">
+        </div>
+        <div class="field">
+          <label for="seed">Ground seed</label>
+          <input type="number" id="seed" name="seed" min="0" max="999999" step="1" value="7">
+        </div>
+      </div>
+      <p class="hint">
+        The ground is generated, not surveyed. Where you have levels, use them:
+        set the relief to zero and enter your mean fall, so the slope limits are
+        checked against a gradient you actually measured.
+      </p>
+      <p>
+        <button type="button" class="button button--small" data-action="reseed">New ground</button>
+        <button type="button" class="button button--small" data-action="rebuild">Rebuild the site</button>
+      </p>
+      <p class="warn" data-rebuild-warning hidden>
+        Rebuilding the ground keeps the planting where it is in plan, so some of
+        it may end up on slopes it would not have been painted on. The schedule
+        will say which.
+      </p>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title">The building</h2>
+      <div class="field field--check">
+        <input type="checkbox" id="hasBuilding" name="hasBuilding" checked>
+        <label for="hasBuilding">There is a building on the site</label>
+      </div>
+      <div class="grid">
+        <div class="field">
+          <label for="buildingWidth">Width <span class="unit">m</span></label>
+          <input type="number" id="buildingWidth" name="buildingWidth" min="2" max="200" step="0.5" value="14">
+        </div>
+        <div class="field">
+          <label for="buildingDepth">Depth <span class="unit">m</span></label>
+          <input type="number" id="buildingDepth" name="buildingDepth" min="2" max="200" step="0.5" value="10">
+        </div>
+        <div class="field">
+          <label for="buildingHeight">Height <span class="unit">m</span></label>
+          <input type="number" id="buildingHeight" name="buildingHeight" min="2" max="120" step="0.5" value="7">
+        </div>
+        <div class="field">
+          <label for="keepOut">Keep planting clear by <span class="unit">m</span></label>
+          <input type="number" id="keepOut" name="keepOut" min="0" max="30" step="0.5" value="3">
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title">Sun and view</h2>
+      <div class="grid">
+        <div class="field">
+          <label for="sunAzimuth">Sun bearing <span class="unit">°</span></label>
+          <input type="range" id="sunAzimuth" name="sunAzimuth" min="0" max="359" step="1" value="150">
+          <output data-readout="sunAzimuth">150°</output>
+        </div>
+        <div class="field">
+          <label for="sunElevation">Sun height <span class="unit">°</span></label>
+          <input type="range" id="sunElevation" name="sunElevation" min="5" max="85" step="1" value="45">
+          <output data-readout="sunElevation">45°</output>
+        </div>
+      </div>
+      <div class="field field--check">
+        <input type="checkbox" id="showSlope" name="showSlope">
+        <label for="showSlope">Mark ground too steep for the selected type</label>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title">This scheme</h2>
+      <div class="field">
+        <label for="project">Project</label>
+        <input type="text" id="project" name="project" autocomplete="off" placeholder="Plot 12, Nguyễn Trãi">
+      </div>
+      <p class="hint">Appears on every export. It does not affect anything that is drawn.</p>
+    </section>
+
+  </form>
+
+  <div class="stage">
+    <canvas data-canvas width="960" height="640" aria-label="The site, in three dimensions. Drag to paint planting onto the ground."></canvas>
+    <div class="stage__overlay">
+      <div class="compass" data-compass aria-hidden="true"><span>N</span></div>
+      <p class="stage__readout" data-cursor-readout></p>
+    </div>
+    <p class="gl-error" data-gl-error hidden></p>
+  </div>
+
+</main>
+
+<div class="panel report" id="report" data-report>
+
+  <h2 class="panel__title">The scheme</h2>
+
+  <p class="verdict" data-verdict data-state="clear">Nothing planted yet.</p>
+  <div class="counts" data-counts></div>
+
+  <div class="export-row">
+    <button type="button" class="button" data-action="export-obj">Save model (OBJ + MTL)</button>
+    <button type="button" class="button" data-action="export-schedule">Save schedule (CSV)</button>
+    <button type="button" class="button" data-action="export-instances">Save positions (CSV)</button>
+    <button type="button" class="button" data-action="export-png">Save view (PNG)</button>
+    <button type="button" class="button" data-action="save-preset">Save preset</button>
+    <button type="button" class="button" data-action="load-preset">Open preset</button>
+  </div>
+
+  <p class="empty" data-empty>
+    Nothing planted yet. Pick a type, then drag on the ground — or load the
+    example to see a scheme with a building, a keep-out and a mixed planting.
+  </p>
+
+  <div class="findings" data-findings hidden></div>
+
+  <h3>The planting schedule</h3>
+  <div class="table-scroll">
+    <table class="data-table" data-schedule-table hidden>
+      <caption class="visually-hidden">Every planting type in the scheme, with counts, sizes and the area it covers</caption>
+      <thead><tr></tr></thead>
+      <tbody data-schedule-body></tbody>
+    </table>
+  </div>
+
+  <h3>What was checked</h3>
+  <div class="coverage" data-coverage></div>
+
+</div>
+
+<p class="status" data-status role="status" aria-live="polite"></p>
+
+<footer class="footer">
+  <p>
+    Site Scatter is original work by <a href="https://github.com/andreyruvi">Duong L.</a>
+    — no dependencies, no tracking, no server.
+    <a href="https://github.com/andreyruvi/site-scatter">Source and licence on GitHub</a>.
+  </p>
+  <p class="hint">
+    The planting geometry is an indicative silhouette, not a plant model, and
+    the ground is generated rather than surveyed. The tool checks the numbers
+    you give it against each other; it does not know your planning policy, your
+    soil or your climate, and it does not check them. A clean schedule is not
+    an approval.
+  </p>
+</footer>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

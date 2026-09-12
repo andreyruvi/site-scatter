@@ -1,0 +1,18 @@
+# There are no dependencies, but a stray install should not be committed.
+node_modules/
+package-lock.json
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Local exports produced while testing the tool
+*.obj
+*.mtl
+*.csv
+*.png
+!assets/*.png
+site-scatter-*.json
